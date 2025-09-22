@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+# dir2llm - Convert directory contents to LLM context
+# 
+# Simple script to combine directory structure and file contents into a single
+# text file for LLM context. Excludes .git directories and binary files.
+
+# Configuration (edit these as needed)
+MAX_FILE_SIZE="1M"  # Max size for individual files (use K, M, G suffixes)
+EXCLUDE_DIRS=".git,node_modules,__pycache__"  # Comma-separated directories to skip
+
+# Generate output filename based on current directory
+OUTPUT_FILE="$(basename "$PWD")_contents.txt"
+
+echo "Creating $OUTPUT_FILE..."
+
+# Create the combined file
+{
+    # Add header
+    echo "===== Directory: $PWD ====="
+    echo "===== Generated: $(date) ====="
+    echo ""
+    
+    # Show directory structure (excluding .git and other specified dirs)
+    echo "===== DIRECTORY STRUCTURE ====="
+    # Build the -I flag for tree by replacing commas with pipes
+    TREE_IGNORE=$(echo "$EXCLUDE_DIRS" | tr ',' '|')
+    tree -a -I "$TREE_IGNORE" . 2>/dev/null || find . -type d -name .git -prune -o -type d -print
+    echo ""
+    
+    # Add file contents
+    echo "===== FILE CONTENTS ====="
+    
+    # Find all files, excluding specified directories and the output file
+    find . -type d \( -name .git $(echo "$EXCLUDE_DIRS" | tr ',' ' ' | xargs -n1 printf " -o -name %s") \) -prune \
+        -o -type f ! -name "$OUTPUT_FILE" -size -"$MAX_FILE_SIZE" -print0 | \
+    sort -z | \
+    while IFS= read -r -d '' file; do
+        # Skip binary files (simple check using grep)
+        if grep -qI . "$file" 2>/dev/null; then
+            printf '\n===== %s =====\n' "$file"
+            cat "$file"
+        else
+            printf '\n===== %s ===== [SKIPPED: Binary file]\n' "$file"
+        fi
+    done
+    
+} > "$OUTPUT_FILE"
+
+# Show result
+echo "✓ Created $OUTPUT_FILE ($(du -h "$OUTPUT_FILE" | cut -f1))"
