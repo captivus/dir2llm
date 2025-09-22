@@ -46,7 +46,7 @@ Edit these variables at the top of the script to customize behavior:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MAX_FILE_SIZE` | `1M` | Maximum size for individual files (use K, M, G suffixes) |
+| `MAX_FILE_SIZE` | `1024k` | Maximum size for individual files (use k for KB, m for MB) |
 | `EXCLUDE_DIRS` | `.git,node_modules,__pycache__` | Comma-separated list of directories to skip |
 
 ## Output Format
